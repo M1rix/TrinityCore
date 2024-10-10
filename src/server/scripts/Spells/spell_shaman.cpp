@@ -21,6 +21,8 @@
  * Scriptnames of files in this file should be prefixed with "spell_sha_".
  */
 
+#include <boost/process/io.hpp>
+
 #include "ScriptMgr.h"
 #include "AreaTriggerAI.h"
 #include "CellImpl.h"
@@ -28,6 +30,7 @@
 #include "CreatureAIImpl.h" // for RAND()
 #include "GridNotifiersImpl.h"
 #include "Item.h"
+#include "Log.h"
 #include "ObjectAccessor.h"
 #include "Player.h"
 #include "SpellAuraEffects.h"
@@ -1972,75 +1975,149 @@ class spell_sha_maelstrom_weapon : public AuraScript
         return ValidateSpellInfo({ SPELL_SHAMAN_MAELSTROM_WEAPON });
     }
 
-    bool CheckProc(AuraEffect const* /*aurEff*/, ProcEventInfo& procInfo)
+    bool CheckEffectProc(ProcEventInfo& eventInfo)
     {
-
-        Unit* target = GetTarget();
-        if (!target)
-        {
-            return false;
-        }
-
-        if (target->HasAura(SPELL_SHAMAN_MAELSTROM_WEAPON) &&
-            target->GetAura(SPELL_SHAMAN_MAELSTROM_WEAPON)->GetStackAmount() >= MAX_MAELSTROM_WEAPON_STACKS)
-        {
-            return false;
-        }
-
-        SpellInfo const* spellInfo = procInfo.GetSpellInfo();
-        if (!spellInfo)
-        {
-            return false;
-        }
-        if (spellInfo->HasLabel(SPELL_LABEL_SHAMAN_MAELSTROM_TRIGGER))
-        {
-            return true;
-        }
-        return false;
+        TC_LOG_INFO("network.opcode", "0");
+        return eventInfo.GetDamageInfo()->GetAttackType() == BASE_ATTACK ||
+            eventInfo.GetDamageInfo()->GetAttackType() == OFF_ATTACK ||
+            eventInfo.GetSpellInfo()->Id == SPELL_SHAMAN_WINDFURY_ATTACK ||
+            eventInfo.GetSpellInfo()->HasLabel(SPELL_LABEL_SHAMAN_MAELSTROM_TRIGGER);
     }
 
-    void HandleProc(AuraEffect const* /*aurEff*/, ProcEventInfo& procInfo)
+    void HandleEffectProc(AuraEffect* /*aurEff*/, ProcEventInfo& eventInfo)
     {
-        Unit* target = GetTarget();
-        if (!target)
+        if (Unit* caster = GetCaster())
         {
-            return;
-        }
+            SpellInfo const* spellInfo = eventInfo.GetSpellInfo();
+            DamageInfo const* damageInfo = eventInfo.GetDamageInfo();
 
-        SpellInfo const* spellInfo = procInfo.GetSpellInfo();
-        if (!spellInfo)
-        {
-            return;
-        }
-
-        const uint32 spellId = spellInfo->Id;
-        int32 stacksToAdd = 1;
-
-        if(spellId == SPELL_SHAMAN_STORMSTRIKE || spellId == SPELL_SHAMAN_WINDSTRIKE)
-            stacksToAdd = 2;
-
-        Aura* maelstromAura = target->GetAura(SPELL_SHAMAN_MAELSTROM_WEAPON);
-        if (!maelstromAura)
-        {
-            target->CastSpell(target, SPELL_SHAMAN_MAELSTROM_WEAPON, true);
-            maelstromAura = target->GetAura(SPELL_SHAMAN_MAELSTROM_WEAPON);
-            if (maelstromAura)
+            if (!spellInfo || !damageInfo)
             {
-                maelstromAura->ModStackAmount(stacksToAdd - 1);
+                return;
             }
-        }
-        else
-        {
-            maelstromAura->ModStackAmount(stacksToAdd);
+            caster->Talk("asdasd",CHAT_MSG_SAY,LANG_ORCISH,50.0,caster);
+            const uint32 spellId = spellInfo->Id;
+            int32 stacksToAdd = 1;
+
+            if(spellId == SPELL_SHAMAN_STORMSTRIKE || spellId == SPELL_SHAMAN_WINDSTRIKE)
+                stacksToAdd = 2;
+
+            Aura* maelstromAura = caster->GetAura(SPELL_SHAMAN_MAELSTROM_WEAPON);
+            if (!maelstromAura)
+            {
+                TC_LOG_INFO("network.opcode", "caster: !maelstromAura  spell:");
+                caster->CastSpell(caster, SPELL_SHAMAN_MAELSTROM_WEAPON, true);
+                maelstromAura = caster->GetAura(SPELL_SHAMAN_MAELSTROM_WEAPON);
+                if (maelstromAura)
+                {
+                    maelstromAura->ModStackAmount(stacksToAdd - 1);
+                }
+            }
+            else
+            {
+                TC_LOG_INFO("network.opcode", "caster: maelstromAura  spell:");
+
+                maelstromAura->ModStackAmount(stacksToAdd);
+            }
         }
     }
 
     void Register() override
     {
-        DoCheckEffectProc += AuraCheckEffectProcFn(spell_sha_maelstrom_weapon::CheckProc, EFFECT_0, SPELL_AURA_PROC_TRIGGER_SPELL);
-        OnEffectProc += AuraEffectProcFn(spell_sha_maelstrom_weapon::HandleProc, EFFECT_0, SPELL_AURA_PROC_TRIGGER_SPELL);
+        DoCheckProc += AuraCheckProcFn(spell_sha_maelstrom_weapon::CheckEffectProc);
+        OnEffectProc += AuraEffectProcFn(spell_sha_maelstrom_weapon::HandleEffectProc, EFFECT_0, SPELL_AURA_DUMMY);
     }
 };
+
+// class spell_sha_maelstrom_weapon_1 : public AuraScript
+// {
+//     bool Validate(SpellInfo const* /*spellInfo*/) override
+//     {
+//         return ValidateSpellInfo({ SPELL_SHAMAN_MAELSTROM_WEAPON });
+//     }
+//
+//     bool CheckEffectProc(ProcEventInfo& eventInfo)
+//     {
+//         return eventInfo.GetDamageInfo()->GetAttackType() == BASE_ATTACK ||
+//             eventInfo.GetDamageInfo()->GetAttackType() == OFF_ATTACK ||
+//             eventInfo.GetSpellInfo()->Id == SPELL_SHAMAN_WINDFURY_ATTACK;
+//     }
+//
+//     void HandleEffectProc(AuraEffect* /*aurEff*/, ProcEventInfo& /*eventInfo*/)
+//     {
+//         if (Unit* caster = GetCaster())
+//             caster->CastSpell(caster, SPELL_SHAMAN_MAELSTROM_WEAPON, true);
+//     }
+//
+//     bool CheckProc(AuraEffect const* /*aurEff*/, ProcEventInfo& procInfo)
+//     {
+//
+//         Unit* caster = GetCaster();
+//         if (!caster)
+//         {
+//             return false;
+//         }
+//
+//         if (caster->HasAura(SPELL_SHAMAN_MAELSTROM_WEAPON) &&
+//             caster->GetAura(SPELL_SHAMAN_MAELSTROM_WEAPON)->GetStackAmount() >= MAX_MAELSTROM_WEAPON_STACKS)
+//         {
+//             return false;
+//         }
+//
+//         SpellInfo const* spellInfo = procInfo.GetSpellInfo();
+//         if (!spellInfo)
+//         {
+//             return false;
+//         }
+//         if (spellInfo->HasLabel(SPELL_LABEL_SHAMAN_MAELSTROM_TRIGGER))
+//         {
+//             return true;
+//         }
+//         return false;
+//     }
+//
+//     void HandleProc(AuraEffect const* /*aurEff*/, ProcEventInfo& procInfo)
+//     {
+//         Unit* caster = GetCaster();
+//         if (!caster)
+//         {
+//             return;
+//         }
+//
+//         SpellInfo const* spellInfo = procInfo.GetSpellInfo();
+//         if (!spellInfo)
+//         {
+//             return;
+//         }
+//
+//         const uint32 spellId = spellInfo->Id;
+//         int32 stacksToAdd = 1;
+//
+//         if(spellId == SPELL_SHAMAN_STORMSTRIKE || spellId == SPELL_SHAMAN_WINDSTRIKE)
+//             stacksToAdd = 2;
+//
+//         Aura* maelstromAura = caster->GetAura(SPELL_SHAMAN_MAELSTROM_WEAPON);
+//         if (!maelstromAura)
+//         {
+//             caster->CastSpell(caster, SPELL_SHAMAN_MAELSTROM_WEAPON, true);
+//             maelstromAura = caster->GetAura(SPELL_SHAMAN_MAELSTROM_WEAPON);
+//             if (maelstromAura)
+//             {
+//                 maelstromAura->ModStackAmount(stacksToAdd - 1);
+//             }
+//         }
+//         else
+//         {
+//             maelstromAura->ModStackAmount(stacksToAdd);
+//         }
+//     }
+//
+//     void Register() override
+//     {
+//         DoCheckEffectProc += AuraCheckEffectProcFn(spell_sha_maelstrom_weapon::CheckProc, EFFECT_0, SPELL_AURA_PROC_TRIGGER_SPELL);
+//         OnEffectProc += AuraEffectProcFn(spell_sha_maelstrom_weapon::HandleProc, EFFECT_0, SPELL_AURA_PROC_TRIGGER_SPELL);
+//     }
+// // };
 
 void AddSC_shaman_spell_scripts()
 {
