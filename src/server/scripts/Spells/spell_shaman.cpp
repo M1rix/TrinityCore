@@ -2013,15 +2013,11 @@ class spell_sha_maelstrom_weapon : public AuraScript
             return;
         }
 
+        const uint32 spellId = spellInfo->Id;
         int32 stacksToAdd = 1;
 
-        switch (spellInfo->Id)
-        {
-            case SPELL_SHAMAN_STORMSTRIKE:
-            case SPELL_SHAMAN_WINDSTRIKE:
-                stacksToAdd = 2;
-                break;
-        }
+        if(spellId == SPELL_SHAMAN_STORMSTRIKE || spellId == SPELL_SHAMAN_WINDSTRIKE)
+            stacksToAdd = 2;
 
         Aura* maelstromAura = target->GetAura(SPELL_SHAMAN_MAELSTROM_WEAPON);
         if (!maelstromAura)
