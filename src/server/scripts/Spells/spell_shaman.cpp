@@ -123,7 +123,14 @@ enum ShamanSpells
     SPELL_SHAMAN_VOLCANIC_SURGE                 = 408572,
     SPELL_SHAMAN_WINDFURY_ATTACK                = 25504,
     SPELL_SHAMAN_WINDFURY_ENCHANTMENT           = 334302,
-    SPELL_SHAMAN_WIND_RUSH                      = 192082
+    SPELL_SHAMAN_WIND_RUSH                      = 192082,
+
+    SPELL_SHAMAN_WINDSTRIKE                     = 115356,
+    SPELL_SHAMAN_MAELSTROM_WEAPON               = 187880,
+    SPELL_SHAMAN_MAELSTROM_WEAPON_STACKS        = 344179,
+    SPELL_LABEL_SHAMAN_MAELSTROM_TRIGGER        = 210853,
+    MAX_MAELSTROM_WEAPON_STACKS                 = 5,
+
 };
 
 enum ShamanSpellLabels
@@ -1957,6 +1964,88 @@ private:
     int32 _refreshTimer;
 };
 
+// 187880 - Maelstrom Weapon
+class spell_sha_maelstrom_weapon : public AuraScript
+{
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        return ValidateSpellInfo({ SPELL_SHAMAN_MAELSTROM_WEAPON });
+    }
+
+    bool CheckProc(AuraEffect const* /*aurEff*/, ProcEventInfo& procInfo)
+    {
+
+        Unit* target = GetTarget();
+        if (!target)
+        {
+            return false;
+        }
+
+        if (target->HasAura(SPELL_SHAMAN_MAELSTROM_WEAPON) &&
+            target->GetAura(SPELL_SHAMAN_MAELSTROM_WEAPON)->GetStackAmount() >= MAX_MAELSTROM_WEAPON_STACKS)
+        {
+            return false;
+        }
+
+        SpellInfo const* spellInfo = procInfo.GetSpellInfo();
+        if (!spellInfo)
+        {
+            return false;
+        }
+        if (spellInfo->HasLabel(SPELL_LABEL_SHAMAN_MAELSTROM_TRIGGER))
+        {
+            return true;
+        }
+        return false;
+    }
+
+    void HandleProc(AuraEffect const* /*aurEff*/, ProcEventInfo& procInfo)
+    {
+        Unit* target = GetTarget();
+        if (!target)
+        {
+            return;
+        }
+
+        SpellInfo const* spellInfo = procInfo.GetSpellInfo();
+        if (!spellInfo)
+        {
+            return;
+        }
+
+        int32 stacksToAdd = 1;
+
+        switch (spellInfo->Id)
+        {
+            case SPELL_SHAMAN_STORMSTRIKE:
+            case SPELL_SHAMAN_WINDSTRIKE:
+                stacksToAdd = 2;
+                break;
+        }
+
+        Aura* maelstromAura = target->GetAura(SPELL_SHAMAN_MAELSTROM_WEAPON);
+        if (!maelstromAura)
+        {
+            target->CastSpell(target, SPELL_SHAMAN_MAELSTROM_WEAPON, true);
+            maelstromAura = target->GetAura(SPELL_SHAMAN_MAELSTROM_WEAPON);
+            if (maelstromAura)
+            {
+                maelstromAura->ModStackAmount(stacksToAdd - 1);
+            }
+        }
+        else
+        {
+            maelstromAura->ModStackAmount(stacksToAdd);
+        }
+    }
+
+    void Register() override
+    {
+        DoCheckEffectProc += AuraCheckEffectProcFn(spell_sha_maelstrom_weapon::CheckProc, EFFECT_0, SPELL_AURA_PROC_TRIGGER_SPELL);
+        OnEffectProc += AuraEffectProcFn(spell_sha_maelstrom_weapon::HandleProc, EFFECT_0, SPELL_AURA_PROC_TRIGGER_SPELL);
+    }
+};
+
 void AddSC_shaman_spell_scripts()
 {
     RegisterSpellScript(spell_sha_aftershock);
@@ -2017,4 +2106,5 @@ void AddSC_shaman_spell_scripts()
     RegisterSpellScript(spell_sha_windspeakers_lava_resurgence);
     RegisterAreaTriggerAI(areatrigger_sha_arctic_snowstorm);
     RegisterAreaTriggerAI(areatrigger_sha_wind_rush_totem);
+    RegisterSpellScript(spell_sha_maelstrom_weapon);
 }
