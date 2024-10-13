@@ -20,10 +20,12 @@
  * Ordered alphabetically using scriptname.
  * Scriptnames of files in this file should be prefixed with "spell_sha_".
  */
+
 #include "ScriptMgr.h"
 #include "AreaTriggerAI.h"
 #include "CellImpl.h"
 #include "Containers.h"
+#include "CreatureAIImpl.h" // for RAND()
 #include "GridNotifiersImpl.h"
 #include "Item.h"
 #include "ObjectAccessor.h"
