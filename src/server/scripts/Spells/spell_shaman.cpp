@@ -1857,6 +1857,7 @@ class spell_sha_windfury_weapon_proc : public AuraScript
     void HandleEffectProc(AuraEffect* aurEff, ProcEventInfo& eventInfo)
     {
         PreventDefaultAction();
+
         for (uint32 i = 0; i < 2; ++i)
             eventInfo.GetActor()->CastSpell(eventInfo.GetProcTarget(), SPELL_SHAMAN_WINDFURY_ATTACK, aurEff);
     }
@@ -1967,7 +1968,7 @@ class spell_sha_maelstrom_weapon : public AuraScript
 {
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
-        return ValidateSpellInfo({ SPELL_SHAMAN_MAELSTROM_WEAPON_POWER });
+        return ValidateSpellInfo({ SPELL_SHAMAN_MAELSTROM_WEAPON_POWER, SPELL_SHAMAN_MAELSTROM_WEAPON_BUFF, SPELL_SHAMAN_MAELSTROM_WEAPON_FIVE_STACKS });
     }
 
     bool CheckProc(ProcEventInfo procInfo)
@@ -1975,9 +1976,8 @@ class spell_sha_maelstrom_weapon : public AuraScript
         const DamageInfo* damageInfo = procInfo.GetDamageInfo();
         const SpellInfo* spellInfo = procInfo.GetSpellInfo();
 
-        return (damageInfo &&
-                (damageInfo->GetAttackType() == BASE_ATTACK || damageInfo->GetAttackType() == OFF_ATTACK)) ||
-               (spellInfo && spellInfo->Id == SPELL_SHAMAN_WINDFURY_ATTACK);
+        return (damageInfo && (damageInfo->GetAttackType() == BASE_ATTACK || damageInfo->GetAttackType() == OFF_ATTACK)) ||
+               (spellInfo && (spellInfo->Id == SPELL_SHAMAN_WINDFURY_ATTACK || spellInfo->Id == SPELL_SHAMAN_STORMSTRIKE || spellInfo->Id == SPELL_SHAMAN_WINDSTRIKE));
     }
 
     void HandleEffectProc(AuraEffect const* /*aurEff*/, ProcEventInfo& /*procInfo*/)
@@ -1990,10 +1990,9 @@ class spell_sha_maelstrom_weapon : public AuraScript
         caster->AddAura(SPELL_SHAMAN_MAELSTROM_WEAPON_BUFF, caster);
 
         const uint32 stackCount = caster->GetAuraCount(SPELL_SHAMAN_MAELSTROM_WEAPON_BUFF);
+
         if (stackCount > 4 && !caster->HasAura(SPELL_SHAMAN_MAELSTROM_WEAPON_FIVE_STACKS))
-        {
             caster->CastSpell(caster, SPELL_SHAMAN_MAELSTROM_WEAPON_FIVE_STACKS, true);
-        }
     }
 
     void Register() override
@@ -2040,8 +2039,7 @@ class spell_sha_reduce_maelstrom_stacks : public SpellScript
 
         for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
         {
-            if (spellInfo->GetEffects()[i].Effect == SPELL_EFFECT_SCHOOL_DAMAGE ||
-                spellInfo->GetEffects()[i].Effect == SPELL_EFFECT_HEAL)
+            if (const SpellEffectName effect = spellInfo->GetEffects()[i].Effect; effect == SPELL_EFFECT_SCHOOL_DAMAGE || effect == SPELL_EFFECT_HEAL)
             {
                 canReduceAuraStack = true;
                 break;
@@ -2056,14 +2054,10 @@ class spell_sha_reduce_maelstrom_stacks : public SpellScript
         maelstromAuraBuff->ModStackAmount(-oldStacks);
 
         if (maelstromAuraBuff->GetStackAmount() < 5)
-        {
-            caster->RemoveAura(SPELL_SHAMAN_MAELSTROM_WEAPON_FIVE_STACKS);
-        }
+            caster->RemoveAurasDueToSpell(SPELL_SHAMAN_MAELSTROM_WEAPON_FIVE_STACKS);
 
         if (maelstromAuraBuff->GetStackAmount() <= 0)
-        {
             caster->RemoveAurasDueToSpell(SPELL_SHAMAN_MAELSTROM_WEAPON_POWER);
-        }
     }
 
     void Register() override
