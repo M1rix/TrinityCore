@@ -2057,8 +2057,10 @@ class spell_sha_reduce_maelstrom_stacks : public SpellScript
             caster->RemoveAurasDueToSpell(SPELL_SHAMAN_MAELSTROM_WEAPON_FIVE_STACKS);
 
         if (maelstromAuraBuff->GetStackAmount() <= 0)
+        {
             caster->RemoveAurasDueToSpell(SPELL_SHAMAN_MAELSTROM_WEAPON_POWER);
             caster->RemoveAurasDueToSpell(SPELL_SHAMAN_MAELSTROM_WEAPON_BUFF);
+        }
     }
 
     void Register() override
