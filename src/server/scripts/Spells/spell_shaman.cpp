@@ -1987,7 +1987,7 @@ class spell_sha_maelstrom_weapon : public AuraScript
             return;
 
         caster->CastSpell(caster, SPELL_SHAMAN_MAELSTROM_WEAPON_POWER, true);
-        caster->AddAura(SPELL_SHAMAN_MAELSTROM_WEAPON_BUFF, caster);
+        caster->CastSpell(caster, SPELL_SHAMAN_MAELSTROM_WEAPON_BUFF, true);
 
         const uint32 stackCount = caster->GetAuraCount(SPELL_SHAMAN_MAELSTROM_WEAPON_BUFF);
 
@@ -2049,9 +2049,9 @@ class spell_sha_reduce_maelstrom_stacks : public SpellScript
         if (!canReduceAuraStack)
             return;
 
-        const int32 oldStacks = std::min<int32>(maelstromAura->GetStackAmount(), 5);
-        maelstromAura->ModStackAmount(-oldStacks);
+        const int32 oldStacks = std::min<int32>(maelstromAuraBuff->GetStackAmount(), 5);
         maelstromAuraBuff->ModStackAmount(-oldStacks);
+        maelstromAura->ModStackAmount(-oldStacks);
 
         if (maelstromAuraBuff->GetStackAmount() < 5)
             caster->RemoveAurasDueToSpell(SPELL_SHAMAN_MAELSTROM_WEAPON_FIVE_STACKS);
