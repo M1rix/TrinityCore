@@ -2035,26 +2035,27 @@ class spell_sha_reduce_maelstrom_stacks : public SpellScript
         if (!spellInfo || spellInfo->CastTimeEntry->Base <= 0)
             return;
 
-        bool canReduceAuraStack = false;
+        bool canReduceAuraStack = spellInfo->Id == SPELL_SHAMAN_LAVA_BURST;
 
-        for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
-        {
-            if (const SpellEffectName effect = spellInfo->GetEffects()[i].Effect; effect == SPELL_EFFECT_SCHOOL_DAMAGE || effect == SPELL_EFFECT_HEAL)
+        if (!canReduceAuraStack)
+            for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
             {
-                canReduceAuraStack = true;
-                break;
+                if (const SpellEffectName effect = spellInfo->GetEffects()[i].Effect; effect == SPELL_EFFECT_SCHOOL_DAMAGE || effect == SPELL_EFFECT_HEAL)
+                {
+                    canReduceAuraStack = true;
+                    break;
+                }
             }
-        }
 
         if (!canReduceAuraStack)
             return;
 
         const int32 oldStacks = std::min<int32>(maelstromAuraBuff->GetStackAmount(), 5);
         maelstromAuraBuff->ModStackAmount(-oldStacks);
-        maelstromAura->ModStackAmount(-oldStacks);
+        maelstromAura->SetStackAmount(maelstromAuraBuff->GetStackAmount());
 
         if (maelstromAuraBuff->GetStackAmount() < 5)
-            caster->RemoveAurasDueToSpell(SPELL_SHAMAN_MAELSTROM_WEAPON_FIVE_STACKS);
+            caster->RemoveAura(SPELL_SHAMAN_MAELSTROM_WEAPON_FIVE_STACKS);
 
         if (maelstromAuraBuff->GetStackAmount() <= 0)
         {
